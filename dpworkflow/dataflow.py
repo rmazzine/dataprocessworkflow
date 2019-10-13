@@ -1,3 +1,5 @@
+import ast
+
 import pandas as pd
 
 
@@ -19,7 +21,13 @@ class dataFlow:
             return
         self.df[col] = self.df[col].add(n)
 
-    def load_model(self, command_list):
+    def save_model(self, model_namepath):
+        open(model_namepath, 'w').write(str(self.model))
+
+    def load_model(self, model_namepath):
+
+        command_list = ast.literal_eval(open(model_namepath, 'r').read())
+
         for command in command_list:
             if command[0] == 'add':
                 self.add(command[1][0], command[1][1])
