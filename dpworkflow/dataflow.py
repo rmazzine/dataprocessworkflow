@@ -15,6 +15,7 @@ class dataFlow:
         self.log.append(f"{len(self.log)} - {action}")
 
     def add(self, n, col=None):
+        self._log_action(f'Adding {n} to {col if col else "entire dataframe"}')
         self.model.append(['add', [n, col]])
         if not col:
             self.df = self.df.add(n)
