@@ -69,10 +69,12 @@ def get_name_num(edge_dict):
 
 # This recursion function needs a global var list to hold values
 global_stats_list = []
+global_op_list = []
 def assignment_digger(value_dict):
     if 'left' in value_dict and 'right' in value_dict:
         assignment_digger(value_dict['left'])
         assignment_digger(value_dict['right'])
+        global_op_list.append(value_dict['op']['_type'])
     elif 'left' in value_dict:
         assignment_digger(value_dict['left'])
     else:
@@ -95,5 +97,3 @@ for line in script['body']:
                     if 'n' in line['value']['right']:
                         # It is a simple number operation to df
                         number_operation = line['value']['right']['n']
-
-print(global_stats_list)
