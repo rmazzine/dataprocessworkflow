@@ -66,34 +66,30 @@ def get_name_num(edge_dict):
     return output
 
 
-
 # This recursion function needs a global var list to hold values
-global_stats_list = []
-global_op_list = []
-def assignment_digger(value_dict):
+
+def assignment_digger(value_dict, global_op_list, global_stats_list):
     if 'left' in value_dict and 'right' in value_dict:
-        assignment_digger(value_dict['left'])
-        assignment_digger(value_dict['right'])
+        assignment_digger(value_dict['left'], global_op_list, global_stats_list)
+        assignment_digger(value_dict['right'], global_op_list, global_stats_list)
         global_op_list.append(value_dict['op']['_type'])
     elif 'left' in value_dict:
-        assignment_digger(value_dict['left'])
+        assignment_digger(value_dict['left'], global_op_list, global_stats_list)
     else:
         global_stats_list.append(get_name_num(value_dict))
 
 
-# Get simple df operations giving the df name
+def assignment_analyzer(line):
+    global global_op_list
+    global global_stats_list
+    global_op_list = []
+    global_stats_list = []
+    if line['_type'] == 'Assign':
+        assignment_digger(line['value'], global_op_list, global_stats_list)
+    print(global_op_list, global_stats_list)
+
+
+# Here we can deal with any kind of assignment
 for line in script['body']:
     if line['_type'] == 'Assign':
-        if len(line['targets']) == 1 and line['targets'][0]['_type'] == 'Subscript':
-            # ONLY WORKS FOR SINGLE ASSIGNMENT
-            df_assignment_column = get_slice(line['targets'][0])
-            if df_csv_assignment in line['targets'][0]['value']['id']:
-                # HERE WE KNOW WE HAVE A ASSIGNMENT TO A DF
-                #df_is_equal_to, df_added_column = left_assignment(line['value'])
-                assignment_digger(line['value'])
-                if 'op' in line['value']:
-                    # Here we verify if any operation is assigned
-                    df_operation = line['value']['op']['_type']
-                    if 'n' in line['value']['right']:
-                        # It is a simple number operation to df
-                        number_operation = line['value']['right']['n']
+        assignment_analyzer(line)
