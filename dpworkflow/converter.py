@@ -69,6 +69,13 @@ def get_name_num(edge_dict):
 # This recursion function needs a global var list to hold values
 
 def assignment_digger(value_dict, global_op_list, global_stats_list):
+    """Gets the operations and assignment variables of a script assignment
+
+    Args:
+        value_dict: Dictionary with the assignment values
+        global_op_list: A list with the operations of the assignment variables
+        global_stats_list: A list with dictionaries about the assignment variables
+    """
     if 'left' in value_dict and 'right' in value_dict:
         assignment_digger(value_dict['left'], global_op_list, global_stats_list)
         assignment_digger(value_dict['right'], global_op_list, global_stats_list)
@@ -80,16 +87,29 @@ def assignment_digger(value_dict, global_op_list, global_stats_list):
 
 
 def assignment_analyzer(line):
+    """Analyze a line, if assignment type, and get the target and operations,assignments
+
+    Args:
+        line (dict): The script line
+
+    Returns:
+        (dict, list, list): A dictionary with the target variables, a list with the assignment
+        operations and a list with dictionaries with the assign variables
+    """
     global global_op_list
     global global_stats_list
     global_op_list = []
     global_stats_list = []
+    target = None
     if line['_type'] == 'Assign':
+        if 'elts' in line['targets'][0]:
+            raise RuntimeError('This package only supports simple assignments')
+        target = get_name_num(line['targets'][0])
         assignment_digger(line['value'], global_op_list, global_stats_list)
-    print(global_op_list, global_stats_list)
+    return target, global_op_list, global_stats_list
 
 
 # Here we can deal with any kind of assignment
 for line in script['body']:
     if line['_type'] == 'Assign':
-        assignment_analyzer(line)
+        print(assignment_analyzer(line))
