@@ -110,6 +110,19 @@ def assignment_analyzer(line):
 
 
 # Here we can deal with any kind of assignment
+assignment_history = []
 for line in script['body']:
     if line['_type'] == 'Assign':
-        print(assignment_analyzer(line))
+        assignment_history.append(assignment_analyzer(line))
+
+# Create a very simple graph to separate target assignments
+dict_graph = {}
+for asgn in assignment_history:
+    idt = asgn[0]['kind']['Name']['id']
+    if idt not in dict_graph:
+        dict_graph[idt] = [asgn]
+    else:
+        dict_graph[idt].append(asgn)
+
+print(dict_graph)
+
