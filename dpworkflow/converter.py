@@ -1,6 +1,11 @@
 import json
 import ast
+import os
+
+from graphviz import Digraph
 from ast2json import ast2json
+
+os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin'
 
 data = open('../venv/test_df.py', 'r').read()
 
@@ -175,10 +180,10 @@ def replace_operations(text):
         text = text.replace(i, j)
     return text
 
-def create_nodes(dict_slice_assignment):
+def create_nodes(df_name, dict_slice_assignment):
     dict_node_expression = {}
     for df_slice, assignments in dict_slice_assignment.items():
-        dict_node_expression[df_slice] = []
+        dict_node_expression[df_slice] = [df_name, df_slice]
         for assignment in assignments:
             node_expression = ''
             for n in range(len(assignment[0])):
@@ -186,7 +191,39 @@ def create_nodes(dict_slice_assignment):
                 node_expression += replace_operations(assignment[0][n])
             node_expression += kind_to_node(assignment[1][-1])
             dict_node_expression[df_slice].append(node_expression)
+        dict_node_expression[df_slice].append(df_slice)
     return dict_node_expression
+
+
+def max_dict_len(dict):
+    max_len = 0
+    for key, value in dict.items():
+        if len(value) > max_len:
+            max_len = len(value)
+    return max_len
+
+
+def link_vertical_nodes(graph, dfslice, list_assignments, index_slice):
+    try:
+        list_assignments[index_slice+1]
+        graph.edge(f'{dfslice}{index_slice}', f'{dfslice}{index_slice+1}')
+    except IndexError:
+        pass
+
+
+def form_subgraphs(graph, dict_assignments):
+    list_dfslices = list(dict_assignments.keys())
+    max_len = max_dict_len(dict_assignments)
+    for i in range(max_len):
+        with graph.subgraph() as s:
+            s.attr(rank='same')
+            for dfslice in list_dfslices:
+                try:
+                    s.node(dfslice + str(i), dict_assignments[dfslice][i])
+                    link_vertical_nodes(graph, dfslice, dict_assignments[dfslice], i)
+                except IndexError:
+                    pass
+
 
 
 print(json.dumps(assignment_graph(script['body'])))
@@ -203,60 +240,10 @@ for key, value in assignment_graph(script['body']).items():
     dict_slice_assignments = {}
     if initial_df_seeds:
         for df_slice in initial_df_seeds:
-            dict_slice_assignments[str(df_slice[0]) + str(df_slice[1])] = get_slice_assignments(
+            dict_slice_assignments[f'{df_slice[0]}[{df_slice[1]}]'] = get_slice_assignments(
                 df_slice, value)
-    print(dict_slice_assignments)
-    print(dict_slice_assignments['dfb'])
-    print(create_nodes(dict_slice_assignments))
-    break
-
-import os
-from graphviz import Digraph
-
-os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin'
-
-dot = Digraph(comment='Test')
-
-with dot.subgraph() as s:
-    s.attr(rank='same')
-
-    s.node('df0', 'df')
-    s.node('df1', 'df')
-    s.node('df2', 'df')
-
-with dot.subgraph() as s:
-    s.attr(rank='same')
-
-    s.node('dfa', 'df[a]')
-    s.node('dfb', 'df[b]')
-    s.node('dfc', 'df[c]')
-
-with dot.subgraph() as s:
-    s.attr(rank='same')
-
-    s.node('dfa1', 'df[a]+1')
-    s.node('dfb1', 'df[b]+1')
-    s.node('dfc1', 'df[a]+df[b]')
-
-with dot.subgraph() as s:
-    s.attr(rank='same')
-
-    s.node('dfaf', 'df[a]')
-    s.node('dfbf', 'df[b]')
-    s.node('dfcf', 'df[c]')
-
-dot.edge('df0', 'dfa')
-dot.edge('dfa', 'dfa1')
-dot.edge('dfa1', 'dfaf')
-
-dot.edge('df1', 'dfb')
-dot.edge('dfb', 'dfb1')
-dot.edge('dfb1', 'dfbf')
-
-dot.edge('df2', 'dfc')
-dot.edge('dfc', 'dfc1')
-dot.edge('dfa', 'dfc1')
-dot.edge('dfb1', 'dfc1')
-dot.edge('dfc1', 'dfcf')
-
-# dot.view()
+    if dict_slice_assignments:
+        dict_assignments = create_nodes(df_name, dict_slice_assignments)
+        graph = Digraph(comment='Test')
+        form_subgraphs(graph, dict_assignments)
+        graph.view()
