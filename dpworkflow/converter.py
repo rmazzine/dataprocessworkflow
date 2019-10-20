@@ -9,27 +9,6 @@ script = ast2json(ast.parse(data))
 for line in script['body']:
     print(line)
 
-# Get import name
-return_pandas_import_name = ''
-for line in script['body']:
-    if line['_type']=='Import':
-        for s_import in line['names']:
-            if s_import['name'] == 'pandas':
-                return_pandas_import_name = s_import['name'] if not s_import['asname'] else \
-                    s_import['asname']
-
-# Get CSV DF creation
-df_csv_assignment = ''
-for line in script['body']:
-    if line['_type'] == 'Assign' and 'func' in line['value']:
-        if 'value' in line['value']['func']:
-            if line['value']['func']['value']['id'] == return_pandas_import_name:
-                # REFERENCE TO PD NAME return_pandas_import_name
-                if line['value']['func']['attr'] == 'read_csv' and len(line['targets']) == 1:
-                    # ONLY WORKS FOR SINGLE ASSIGNMENT
-                    df_csv_assignment = line['targets'][0]['id']
-
-
 def get_slice(dict_ver):
     """Tries to get the column of context dataframe
 
