@@ -9,6 +9,7 @@ script = ast2json(ast.parse(data))
 for line in script['body']:
     print(line)
 
+
 def get_slice(dict_ver):
     """Tries to get the column of context dataframe
 
@@ -119,9 +120,18 @@ def assignment_graph(script_body):
 
 
 def get_slices(list_calls, df_name):
+    """Gets a list with the slices being used in a DataFrame assignment
+
+    Args:
+        list_calls (list): A list containing all calls for an identified DataFrame
+        df_name: Name of DataFrame
+
+    Returns:
+        list : A list with the name of DataFrame slices used on the assignments
+    """
     initial_df_seeds = []
     for parent_call in list_calls:
-        calls = parent_call[2]
+        calls = parent_call[2].copy()
         calls.append(parent_call[0])
         for call in calls:
             if (df_name == call['kind']['Name']['id']) and (call['kind']['Name']['s']):
@@ -130,17 +140,56 @@ def get_slices(list_calls, df_name):
                     initial_df_seeds.append(df_slice)
     return initial_df_seeds
 
+
 def get_slice_assignments(slice_desc, list_calls):
+    """Returns a dictionary with assignments divided by slice
+
+    Args:
+        slice_desc (list): A list with unique DataFrame slices detected in the call
+        list_calls (list): Calls made by a DataFrame
+
+    Returns:
+        dict : A dictionary with operations and assignments for a given DataFrame slice
+
+    """
     slice_assignments = []
     for parent_call in list_calls:
         if (parent_call[0]['kind']['Name']['id'] == slice_desc[0]) and \
                 (parent_call[0]['kind']['Name']['s'] == slice_desc[1]):
-            slice_assignments.append(parent_call[2])
+            slice_assignments.append([parent_call[1], parent_call[2]])
 
     return slice_assignments
 
-print(json.dumps(assignment_graph(script['body'])))
 
+def kind_to_node(kind_dict):
+    print(kind_dict)
+    if kind_dict['kind']['Name']['id'] and kind_dict['kind']['Name']['s']:
+        return f'{kind_dict["kind"]["Name"]["id"]}[{kind_dict["kind"]["Name"]["s"]}]'
+    if kind_dict['kind']['Num']:
+        return str(kind_dict['kind']['Num'])
+    raise RuntimeError('Kind not identified')
+
+def replace_operations(text):
+    dic_op = {'Add': '+'}
+    for i, j in dic_op.items():
+        text = text.replace(i, j)
+    return text
+
+def create_nodes(dict_slice_assignment):
+    dict_node_expression = {}
+    for df_slice, assignments in dict_slice_assignment.items():
+        dict_node_expression[df_slice] = []
+        for assignment in assignments:
+            node_expression = ''
+            for n in range(len(assignment[0])):
+                node_expression += kind_to_node(assignment[1][n])
+                node_expression += replace_operations(assignment[0][n])
+            node_expression += kind_to_node(assignment[1][-1])
+            dict_node_expression[df_slice].append(node_expression)
+    return dict_node_expression
+
+
+print(json.dumps(assignment_graph(script['body'])))
 
 for key, value in assignment_graph(script['body']).items():
     # Now we have to find what is a df
@@ -154,18 +203,17 @@ for key, value in assignment_graph(script['body']).items():
     dict_slice_assignments = {}
     if initial_df_seeds:
         for df_slice in initial_df_seeds:
-            dict_slice_assignments[str(df_slice[0])+str(df_slice[1])] = get_slice_assignments(
+            dict_slice_assignments[str(df_slice[0]) + str(df_slice[1])] = get_slice_assignments(
                 df_slice, value)
     print(dict_slice_assignments)
-
-
-
+    print(dict_slice_assignments['dfb'])
+    print(create_nodes(dict_slice_assignments))
+    break
 
 import os
 from graphviz import Digraph
 
 os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin'
-
 
 dot = Digraph(comment='Test')
 
@@ -197,7 +245,6 @@ with dot.subgraph() as s:
     s.node('dfbf', 'df[b]')
     s.node('dfcf', 'df[c]')
 
-
 dot.edge('df0', 'dfa')
 dot.edge('dfa', 'dfa1')
 dot.edge('dfa1', 'dfaf')
@@ -212,6 +259,4 @@ dot.edge('dfa', 'dfc1')
 dot.edge('dfb1', 'dfc1')
 dot.edge('dfc1', 'dfcf')
 
-
-#dot.view()
-
+# dot.view()
