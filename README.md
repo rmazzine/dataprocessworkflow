@@ -24,5 +24,4 @@ df['d'] = 10
 
 We simply put it in the root directory and run the converter.py script. It will outputs a view on browser like that one:
 
-![](img/exemple1.png)
-
+![Example image of script output](img/example1.png?raw=true "Output Example")
