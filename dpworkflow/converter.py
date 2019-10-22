@@ -11,6 +11,7 @@ data = open('../venv/test_df.py', 'r').read()
 
 script = ast2json(ast.parse(data))
 
+
 # for line in script['body']:
 #     print(line)
 
@@ -167,13 +168,34 @@ def get_slice_assignments(slice_desc, list_calls):
 
 
 def kind_to_node(kind_dict):
+    """Converts a dictionary with variable info to a understandable string
+
+    Args:
+        kind_dict (dict): Dictionary with information about a varaible
+
+    Returns:
+        (str): Plain representation of what that dictionary variable mean
+
+    Raises:
+        RuntimeError: Raised when the kind is not recognized
+
+    """
     if kind_dict['kind']['Name']['id'] and kind_dict['kind']['Name']['s']:
         return f'{kind_dict["kind"]["Name"]["id"]}[{kind_dict["kind"]["Name"]["s"]}]'
     if kind_dict['kind']['Num']:
         return str(kind_dict['kind']['Num'])
     raise RuntimeError('Kind not identified')
 
+
 def replace_operations(text):
+    """Replace fully writen operations to its respective symbol
+
+    Args:
+        text (str): Fully writen operation
+
+    Returns:
+        (str): Symbolic representation of the operation
+    """
     dic_op = {'Add': '+'}
     for i, j in dic_op.items():
         text = text.replace(i, j)
@@ -181,6 +203,15 @@ def replace_operations(text):
 
 
 def create_nodes(df_name, dict_slice_assignment):
+    """Create a dictionary with node information for each operation line
+
+    Args:
+        df_name (str): Name of DataFrame being evaluated
+        dict_slice_assignment (dict): Dictionary with information of assignments of each slide
+
+    Returns:
+        (dict): Information about the operation for each slice
+    """
     dict_node_expression = {}
     for df_slice, assignments in dict_slice_assignment.items():
         dict_node_expression[df_slice] = {}
@@ -200,6 +231,14 @@ def create_nodes(df_name, dict_slice_assignment):
 
 
 def max_value_dict_len(dict):
+    """Get the maximum number of elements of an slice assignments dict
+
+    Args:
+        dict (dict): A dictionary with slice assignments
+
+    Returns:
+        (int): The maximum number of operations of all slice assignments
+    """
     max_len = 0
     for key, value in dict.items():
         if len(value['value']) > max_len:
@@ -208,14 +247,30 @@ def max_value_dict_len(dict):
 
 
 def link_vertical_nodes(graph, dfslice, list_assignments, index_slice):
+    """Link vertical nodes
+
+    Args:
+        graph: Graph object
+        dfslice (str): DataFrame slice being assigned on operation
+        list_assignments (list): List of assignments for that DataFame slice
+        index_slice (int): Line number for that operation
+    """
     try:
-        list_assignments[index_slice+1]
-        graph.edge(f'{dfslice}{index_slice}', f'{dfslice}{index_slice+1}')
+        list_assignments[index_slice + 1]
+        graph.edge(f'{dfslice}{index_slice}', f'{dfslice}{index_slice + 1}')
     except IndexError:
         pass
 
 
 def form_subgraphs(graph, dict_assignments):
+    """Create subgraphs for each operation step
+
+        This also manages the vertical and transversal edges for each node
+
+    Args:
+        graph: Graph object
+        dict_assignments (dict): Dictionary with assignments for each DataFrame slice
+    """
     list_dfslices = list(dict_assignments.keys())
     max_len = max_value_dict_len(dict_assignments)
     middle_assignments = {}
@@ -228,26 +283,30 @@ def form_subgraphs(graph, dict_assignments):
                     link_vertical_nodes(graph, dfslice, dict_assignments[dfslice]['value'], i)
                     if dict_assignments[dfslice]['line'][i]:
                         # DF[slice],  nodecode, expression, linenumber
-                        middle_assignments[dict_assignments[dfslice]['line'][i]] =\
-                            [dfslice, dfslice+str(i), dict_assignments[dfslice]['value'][i]]
+                        middle_assignments[dict_assignments[dfslice]['line'][i]] = \
+                            [dfslice, dfslice + str(i), dict_assignments[dfslice]['value'][i]]
                 except IndexError:
                     pass
-    print(middle_assignments)
     link_transversal_assignments(graph, middle_assignments)
 
 
-
 def link_transversal_assignments(graph, middle_assignments):
+    """Adds transversal edges for the graph nodes
+
+    Args:
+        graph: Graph object
+        middle_assignments (dict): Dictionaty containing assignment operations for a specific
+        DataFrame slice
+    """
     lines_idxs = list(middle_assignments.keys())
     lines_idxs.sort()
     for i in range(len(lines_idxs)):
-        for y in range(i+1, len(lines_idxs)):
+        for y in range(i + 1, len(lines_idxs)):
             if middle_assignments[lines_idxs[i]][0] == middle_assignments[lines_idxs[y]][0]:
                 break
             if middle_assignments[lines_idxs[i]][0] in middle_assignments[lines_idxs[y]][2]:
                 graph.edge(middle_assignments[lines_idxs[i]][1],
                            middle_assignments[lines_idxs[y]][1])
-
 
 
 for key, value in assignment_graph(script['body']).items():
@@ -268,6 +327,5 @@ for key, value in assignment_graph(script['body']).items():
         dict_assignments = create_nodes(df_name, dict_slice_assignments)
         graph = Digraph(comment='Test')
         form_subgraphs(graph, dict_assignments)
-
 
         graph.view()
