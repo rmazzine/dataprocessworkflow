@@ -11,8 +11,8 @@ data = open('../venv/test_df.py', 'r').read()
 
 script = ast2json(ast.parse(data))
 
-for line in script['body']:
-    print(line)
+# for line in script['body']:
+#     print(line)
 
 
 def get_slice(dict_ver):
@@ -167,7 +167,6 @@ def get_slice_assignments(slice_desc, list_calls):
 
 
 def kind_to_node(kind_dict):
-    print(kind_dict)
     if kind_dict['kind']['Name']['id'] and kind_dict['kind']['Name']['s']:
         return f'{kind_dict["kind"]["Name"]["id"]}[{kind_dict["kind"]["Name"]["s"]}]'
     if kind_dict['kind']['Num']:
@@ -180,26 +179,31 @@ def replace_operations(text):
         text = text.replace(i, j)
     return text
 
+
 def create_nodes(df_name, dict_slice_assignment):
     dict_node_expression = {}
     for df_slice, assignments in dict_slice_assignment.items():
-        dict_node_expression[df_slice] = [df_name, df_slice]
+        dict_node_expression[df_slice] = {}
+        dict_node_expression[df_slice]['value'] = [df_name, df_slice]
+        dict_node_expression[df_slice]['line'] = [None, None]
         for assignment in assignments:
             node_expression = ''
             for n in range(len(assignment[0])):
                 node_expression += kind_to_node(assignment[1][n])
                 node_expression += replace_operations(assignment[0][n])
             node_expression += kind_to_node(assignment[1][-1])
-            dict_node_expression[df_slice].append(node_expression)
-        dict_node_expression[df_slice].append(df_slice)
+            dict_node_expression[df_slice]['value'].append(node_expression)
+            dict_node_expression[df_slice]['line'].append(assignment[1][0]['lineno'])
+        dict_node_expression[df_slice]['value'].append(df_slice)
+        dict_node_expression[df_slice]['line'].append(None)
     return dict_node_expression
 
 
-def max_dict_len(dict):
+def max_value_dict_len(dict):
     max_len = 0
     for key, value in dict.items():
-        if len(value) > max_len:
-            max_len = len(value)
+        if len(value['value']) > max_len:
+            max_len = len(value['value'])
     return max_len
 
 
@@ -213,20 +217,38 @@ def link_vertical_nodes(graph, dfslice, list_assignments, index_slice):
 
 def form_subgraphs(graph, dict_assignments):
     list_dfslices = list(dict_assignments.keys())
-    max_len = max_dict_len(dict_assignments)
+    max_len = max_value_dict_len(dict_assignments)
+    middle_assignments = {}
     for i in range(max_len):
         with graph.subgraph() as s:
             s.attr(rank='same')
             for dfslice in list_dfslices:
                 try:
-                    s.node(dfslice + str(i), dict_assignments[dfslice][i])
-                    link_vertical_nodes(graph, dfslice, dict_assignments[dfslice], i)
+                    s.node(dfslice + str(i), dict_assignments[dfslice]['value'][i])
+                    link_vertical_nodes(graph, dfslice, dict_assignments[dfslice]['value'], i)
+                    if dict_assignments[dfslice]['line'][i]:
+                        # DF[slice],  nodecode, expression, linenumber
+                        middle_assignments[dict_assignments[dfslice]['line'][i]] =\
+                            [dfslice, dfslice+str(i), dict_assignments[dfslice]['value'][i]]
                 except IndexError:
                     pass
+    print(middle_assignments)
+    link_transversal_assignments(graph, middle_assignments)
 
 
 
-print(json.dumps(assignment_graph(script['body'])))
+def link_transversal_assignments(graph, middle_assignments):
+    lines_idxs = list(middle_assignments.keys())
+    lines_idxs.sort()
+    for i in range(len(lines_idxs)):
+        for y in range(i+1, len(lines_idxs)):
+            if middle_assignments[lines_idxs[i]][0] == middle_assignments[lines_idxs[y]][0]:
+                break
+            if middle_assignments[lines_idxs[i]][0] in middle_assignments[lines_idxs[y]][2]:
+                graph.edge(middle_assignments[lines_idxs[i]][1],
+                           middle_assignments[lines_idxs[y]][1])
+
+
 
 for key, value in assignment_graph(script['body']).items():
     # Now we have to find what is a df
@@ -246,4 +268,6 @@ for key, value in assignment_graph(script['body']).items():
         dict_assignments = create_nodes(df_name, dict_slice_assignments)
         graph = Digraph(comment='Test')
         form_subgraphs(graph, dict_assignments)
+
+
         graph.view()
