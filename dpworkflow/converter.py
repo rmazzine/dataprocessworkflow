@@ -196,7 +196,7 @@ def replace_operations(text):
     Returns:
         (str): Symbolic representation of the operation
     """
-    dic_op = {'Add': '+'}
+    dic_op = {'Add': '+', 'Sub': '-', 'Mult': '*', 'Div': '/'}
     for i, j in dic_op.items():
         text = text.replace(i, j)
     return text
@@ -309,23 +309,32 @@ def link_transversal_assignments(graph, middle_assignments):
                            middle_assignments[lines_idxs[y]][1])
 
 
-for key, value in assignment_graph(script['body']).items():
-    # Now we have to find what is a df
-    initial_df_seeds = []
-    if value[0][2][0]['main']:
-        # See the slices
-        df_name = key
-        initial_df_seeds = get_slices(value, df_name)
+def create_graph(script):
+    """Creates a graph from a script body
 
-    # Now, separate assignments by each slice
-    dict_slice_assignments = {}
-    if initial_df_seeds:
-        for df_slice in initial_df_seeds:
-            dict_slice_assignments[f'{df_slice[0]}[{df_slice[1]}]'] = get_slice_assignments(
-                df_slice, value)
-    if dict_slice_assignments:
-        dict_assignments = create_nodes(df_name, dict_slice_assignments)
-        graph = Digraph(comment='Test')
-        form_subgraphs(graph, dict_assignments)
+    Args:
+        script: Text of script
+    """
+    for key, value in assignment_graph(script['body']).items():
+        # Now we have to find what is a df
+        initial_df_seeds = []
+        if value[0][2][0]['main']:
+            # See the slices
+            df_name = key
+            initial_df_seeds = get_slices(value, df_name)
 
-        graph.view()
+        # Now, separate assignments by each slice
+        dict_slice_assignments = {}
+        if initial_df_seeds:
+            for df_slice in initial_df_seeds:
+                dict_slice_assignments[f'{df_slice[0]}[{df_slice[1]}]'] = get_slice_assignments(
+                    df_slice, value)
+        if dict_slice_assignments:
+            dict_assignments = create_nodes(df_name, dict_slice_assignments)
+            graph = Digraph(comment='Test')
+            form_subgraphs(graph, dict_assignments)
+
+            graph.view()
+
+
+create_graph(script)
