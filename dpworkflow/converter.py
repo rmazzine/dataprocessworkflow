@@ -12,117 +12,151 @@ data = open('../venv/test_df.py', 'r').read()
 script = ast2json(ast.parse(data))
 
 
-# for line in script['body']:
-#     print(line)
+for line in script['body']:
+     print(line)
+
+class script_parse():
+
+    def __init__(self, script):
+        self.script_body = script['body']
+        self.pandas_import_name = self._get_import_name()
+        self.pandas_dataframes = self._get_dataframes()
+        self.pandas_df_assignments = self._get_df_assignments()
+
+    def _get_df_assignments(self):
+        df_assignments = {}
+
+        assignments = self.assignment_graph()
+
+        for dataframe in self.pandas_dataframes:
+            df_assignments[dataframe] = assignments[dataframe]
+
+        return df_assignments
 
 
-def get_slice(dict_ver):
-    """Tries to get the column of context dataframe
+    def assignment_graph(self):
+        # Here we can deal with any kind of assignment
+        assignment_history = []
+        for script_line in self.script_body:
+            if script_line['_type'] == 'Assign':
+                assignment_history.append(self._assignment_analyzer(script_line,
+                                                                    self.pandas_import_name))
 
-    Args:
-        dict_ver (dict): Dictionary to be analyzed
+        # Create a very simple graph to separate target assignments
+        dict_graph = {}
+        for asgn in assignment_history:
+            idt = asgn[0]['kind']['Name']['id']
+            if idt not in dict_graph:
+                dict_graph[idt] = [asgn]
+            else:
+                dict_graph[idt].append(asgn)
 
-    Returns (str): The column value
+        return dict_graph
 
-    """
-    if 'slice' in dict_ver:
-        return dict_ver['slice']['value']['s']
+    def _get_import_name(self):
+        pandas_import_name = None
+        for script_line in self.script_body:
+            if script_line['_type'] == 'Import':
+                if script_line['names'][0]['asname'] and \
+                        script_line['names'][0]['name'] == 'pandas':
+                    pandas_import_name = script_line['names'][0]['asname']
+                elif script_line['names'][0]['name'] == 'pandas':
+                    pandas_import_name = 'pandas'
 
+        if pandas_import_name:
+            return pandas_import_name
 
-def get_name_num(edge_dict, pd_module_name):
-    """
+        raise RuntimeError('No pandas module import found')
 
-    Args:
-        edge_dict: A dictionary that is either a name or value
-        pd_module_name: Name of Pandas module on code
+    def _get_dataframes(self):
+        pandas_dataframes = []
+        load_df_attrs = ['read_csv', 'DataFrame']
+        for script_line in self.script_body:
+            if script_line['_type'] == 'Assign':
+                if script_line['value']['_type'] == 'Call':
+                    print(self.pandas_import_name)
+                    if script_line['value']['func']['value']['id'] == self.pandas_import_name and\
+                            script_line['value']['func']['attr'] in load_df_attrs:
+                        pandas_dataframes.append(script_line['targets'][0]['id'])
+        return pandas_dataframes
 
-    Returns (tuple): The assigned df name and its respective column
-    """
-    output = {'kind': {'Name': {'id': None, 's': None}, 'Num': None}, 'lineno': None, 'main': None}
-    if edge_dict['_type'] == 'Name':
-        output['kind']['Name']['id'] = edge_dict['id']
-        output['lineno'] = edge_dict['lineno']
-    if edge_dict['_type'] == 'Subscript':
-        output['kind']['Name']['id'] = edge_dict['value']['id']
-        output['lineno'] = edge_dict['lineno']
-        if 's' in edge_dict['slice']['value']:
-            output['kind']['Name']['s'] = edge_dict['slice']['value']['s']
-        if 'n' in edge_dict['slice']['value']:
-            output['kind']['Name']['s'] = edge_dict['slice']['value']['n']
-    if edge_dict['_type'] == 'Num':
-        output['kind']['Num'] = edge_dict['n']
-        output['lineno'] = edge_dict['lineno']
-    if edge_dict['_type'] == 'Call':
-        if 'value' in edge_dict['func']:
-            if (edge_dict['func']['value']['id']) == pd_module_name and \
-                    (edge_dict['func']['attr'] in ['read_csv']):
-                output['main'] = True
+    def _assignment_analyzer(self, line, pd_module_name):
+        """Analyze a line, if assignment type, and get the target and operations,assignments
 
-    return output
+        Args:
+            line (dict): The script line
 
+        Returns:
+            (dict, list, list): A dictionary with the target variables, a list with the assignment
+            operations and a list with dictionaries with the assign variables
+        """
+        global global_op_list
+        global global_stats_list
+        global_op_list = []
+        global_stats_list = []
+        target = None
+        if line['_type'] == 'Assign':
+            if 'elts' in line['targets'][0]:
+                raise RuntimeError('This package only supports simple assignments')
+            target = self._get_name_num(line['targets'][0], 'pd')
+            self._assignment_digger(line['value'], global_op_list, global_stats_list,
+                                    pd_module_name)
+        return target, global_op_list, global_stats_list
 
-# This recursion function needs a global var list to hold values
+    def _get_name_num(self, edge_dict, pd_module_name):
+        """
 
-def assignment_digger(value_dict, global_op_list, global_stats_list, pd_module_name):
-    """Gets the operations and assignment variables of a script assignment
+        Args:
+            edge_dict: A dictionary that is either a name or value
+            pd_module_name: Name of Pandas module on code
 
-    Args:
-        value_dict: Dictionary with the assignment values
-        global_op_list: A list with the operations of the assignment variables
-        global_stats_list: A list with dictionaries about the assignment variables
-    """
-    if 'left' in value_dict and 'right' in value_dict:
-        assignment_digger(value_dict['left'], global_op_list, global_stats_list, pd_module_name)
-        assignment_digger(value_dict['right'], global_op_list, global_stats_list, pd_module_name)
-        global_op_list.append(value_dict['op']['_type'])
-    elif 'left' in value_dict:
-        assignment_digger(value_dict['left'], global_op_list, global_stats_list, pd_module_name)
-    else:
-        global_stats_list.append(get_name_num(value_dict, pd_module_name))
+        Returns (tuple): The assigned df name and its respective column
+        """
+        output = {'kind': {'Name': {'id': None, 's': None}, 'Num': None}, 'lineno': None,
+                  'main': None}
+        if edge_dict['_type'] == 'Name':
+            output['kind']['Name']['id'] = edge_dict['id']
+            output['lineno'] = edge_dict['lineno']
+        if edge_dict['_type'] == 'Subscript':
+            output['kind']['Name']['id'] = edge_dict['value']['id']
+            output['lineno'] = edge_dict['lineno']
+            if 's' in edge_dict['slice']['value']:
+                output['kind']['Name']['s'] = edge_dict['slice']['value']['s']
+            if 'n' in edge_dict['slice']['value']:
+                output['kind']['Name']['s'] = edge_dict['slice']['value']['n']
+        if edge_dict['_type'] == 'Num':
+            output['kind']['Num'] = edge_dict['n']
+            output['lineno'] = edge_dict['lineno']
+        if edge_dict['_type'] == 'Call':
+            if 'value' in edge_dict['func']:
+                if (edge_dict['func']['value']['id']) == pd_module_name and \
+                        (edge_dict['func']['attr'] in ['read_csv']):
+                    output['main'] = True
 
+        return output
 
-def assignment_analyzer(line, pd_module_name):
-    """Analyze a line, if assignment type, and get the target and operations,assignments
+    # This recursion function needs a global var list to hold values
 
-    Args:
-        line (dict): The script line
+    def _assignment_digger(self, value_dict, global_op_list, global_stats_list, pd_module_name):
+        """Gets the operations and assignment variables of a script assignment
 
-    Returns:
-        (dict, list, list): A dictionary with the target variables, a list with the assignment
-        operations and a list with dictionaries with the assign variables
-    """
-    global global_op_list
-    global global_stats_list
-    global_op_list = []
-    global_stats_list = []
-    target = None
-    if line['_type'] == 'Assign':
-        if 'elts' in line['targets'][0]:
-            raise RuntimeError('This package only supports simple assignments')
-        target = get_name_num(line['targets'][0], 'pd')
-        assignment_digger(line['value'], global_op_list, global_stats_list, pd_module_name)
-    return target, global_op_list, global_stats_list
-
-
-def assignment_graph(script_body):
-    # Here we can deal with any kind of assignment
-    pd_module_name = 'pd'
-
-    assignment_history = []
-    for script_line in script_body:
-        if script_line['_type'] == 'Assign':
-            assignment_history.append(assignment_analyzer(script_line, pd_module_name))
-
-    # Create a very simple graph to separate target assignments
-    dict_graph = {}
-    for asgn in assignment_history:
-        idt = asgn[0]['kind']['Name']['id']
-        if idt not in dict_graph:
-            dict_graph[idt] = [asgn]
+        Args:
+            value_dict: Dictionary with the assignment values
+            global_op_list: A list with the operations of the assignment variables
+            global_stats_list: A list with dictionaries about the assignment variables
+        """
+        if 'left' in value_dict and 'right' in value_dict:
+            self._assignment_digger(value_dict['left'], global_op_list, global_stats_list,
+                                    pd_module_name)
+            self._assignment_digger(value_dict['right'], global_op_list, global_stats_list,
+                                    pd_module_name)
+            global_op_list.append(value_dict['op']['_type'])
+        elif 'left' in value_dict:
+            self._assignment_digger(value_dict['left'], global_op_list, global_stats_list,
+                                    pd_module_name)
         else:
-            dict_graph[idt].append(asgn)
+            global_stats_list.append(self._get_name_num(value_dict, pd_module_name))
 
-    return dict_graph
 
 
 def get_slices(list_calls, df_name):
@@ -315,7 +349,9 @@ def create_graph(script):
     Args:
         script: Text of script
     """
-    for key, value in assignment_graph(script['body']).items():
+    assignment_graph = script_parse(script).pandas_df_assignments
+
+    for key, value in assignment_graph.items():
         # Now we have to find what is a df
         initial_df_seeds = []
         if value[0][2][0]['main']:
