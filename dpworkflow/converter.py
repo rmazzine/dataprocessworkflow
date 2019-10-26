@@ -12,8 +12,8 @@ data = open('../venv/test_df.py', 'r').read()
 script = ast2json(ast.parse(data))
 
 
-for line in script['body']:
-     print(line)
+# for line in script['body']:
+#      print(line)
 
 class script_parse():
 
@@ -22,6 +22,8 @@ class script_parse():
         self.pandas_import_name = self._get_import_name()
         self.pandas_dataframes = self._get_dataframes()
         self.pandas_df_assignments = self._get_df_assignments()
+        self.pandas_dataframe_slices = self._get_slices()
+        self.pandas_df_slice_assignments = self._get_df_slice_assignments()
 
     def _get_df_assignments(self):
         df_assignments = {}
@@ -74,7 +76,6 @@ class script_parse():
         for script_line in self.script_body:
             if script_line['_type'] == 'Assign':
                 if script_line['value']['_type'] == 'Call':
-                    print(self.pandas_import_name)
                     if script_line['value']['func']['value']['id'] == self.pandas_import_name and\
                             script_line['value']['func']['attr'] in load_df_attrs:
                         pandas_dataframes.append(script_line['targets'][0]['id'])
@@ -157,48 +158,66 @@ class script_parse():
         else:
             global_stats_list.append(self._get_name_num(value_dict, pd_module_name))
 
+    def _get_slices(self):
+        """Gets a list with the slices being used in a DataFrame assignment
 
+        Args:
+            list_calls (list): A list containing all calls for an identified DataFrame
+            df_name: Name of DataFrame
 
-def get_slices(list_calls, df_name):
-    """Gets a list with the slices being used in a DataFrame assignment
+        Returns:
+            list : A list with the name of DataFrame slices used on the assignments
+        """
+        pandas_dataframe_slices = {}
+        for df_name, list_calls in self.pandas_df_assignments.items():
+            initial_df_seeds = []
+            for parent_call in list_calls:
+                calls = parent_call[2].copy()
+                calls.append(parent_call[0])
+                for call in calls:
+                    if (df_name == call['kind']['Name']['id']) and (call['kind']['Name']['s']):
+                        df_slice = [call['kind']['Name']['id'], call['kind']['Name']['s']]
+                        if df_slice not in initial_df_seeds:
+                            initial_df_seeds.append(df_slice)
+            pandas_dataframe_slices[df_name] = initial_df_seeds
 
-    Args:
-        list_calls (list): A list containing all calls for an identified DataFrame
-        df_name: Name of DataFrame
+        return pandas_dataframe_slices
 
-    Returns:
-        list : A list with the name of DataFrame slices used on the assignments
-    """
-    initial_df_seeds = []
-    for parent_call in list_calls:
-        calls = parent_call[2].copy()
-        calls.append(parent_call[0])
-        for call in calls:
-            if (df_name == call['kind']['Name']['id']) and (call['kind']['Name']['s']):
-                df_slice = [call['kind']['Name']['id'], call['kind']['Name']['s']]
-                if df_slice not in initial_df_seeds:
-                    initial_df_seeds.append(df_slice)
-    return initial_df_seeds
+    def _slice_assignments(self, slice_desc, list_calls):
+        """Returns a dictionary with assignments divided by slice
 
+        Args:
+            slice_desc (list): A list with unique DataFrame slices detected in the call
+            list_calls (list): Calls made by a DataFrame
 
-def get_slice_assignments(slice_desc, list_calls):
-    """Returns a dictionary with assignments divided by slice
+        Returns:
+            dict : A dictionary with operations and assignments for a given DataFrame slice
 
-    Args:
-        slice_desc (list): A list with unique DataFrame slices detected in the call
-        list_calls (list): Calls made by a DataFrame
+        """
+        slice_assignments = []
+        for parent_call in list_calls:
+            if (parent_call[0]['kind']['Name']['id'] == slice_desc[0]) and \
+                    (parent_call[0]['kind']['Name']['s'] == slice_desc[1]):
+                slice_assignments.append([parent_call[1], parent_call[2]])
 
-    Returns:
-        dict : A dictionary with operations and assignments for a given DataFrame slice
+        return slice_assignments
 
-    """
-    slice_assignments = []
-    for parent_call in list_calls:
-        if (parent_call[0]['kind']['Name']['id'] == slice_desc[0]) and \
-                (parent_call[0]['kind']['Name']['s'] == slice_desc[1]):
-            slice_assignments.append([parent_call[1], parent_call[2]])
+    def _get_df_slice_assignments(self):
+        """Returns a dictionary with assignments divided by slice
 
-    return slice_assignments
+        Returns:
+            dict : A dictionary with operations and assignments for a given DataFrame slice
+
+        """
+        pandas_dataframe_slice_assignments = {}
+        for df_name, df_slices in self.pandas_dataframe_slices.items():
+            value = self.pandas_df_assignments[df_name]
+            dict_slice_assignments = {}
+            for df_slice in df_slices:
+                dict_slice_assignments[f'{df_slice[0]}[{df_slice[1]}]'] = \
+                    self._slice_assignments(df_slice, value)
+            pandas_dataframe_slice_assignments[df_name] = dict_slice_assignments
+        return pandas_dataframe_slice_assignments
 
 
 def kind_to_node(kind_dict):
@@ -349,28 +368,16 @@ def create_graph(script):
     Args:
         script: Text of script
     """
-    assignment_graph = script_parse(script).pandas_df_assignments
-
-    for key, value in assignment_graph.items():
-        # Now we have to find what is a df
-        initial_df_seeds = []
-        if value[0][2][0]['main']:
-            # See the slices
-            df_name = key
-            initial_df_seeds = get_slices(value, df_name)
-
-        # Now, separate assignments by each slice
-        dict_slice_assignments = {}
-        if initial_df_seeds:
-            for df_slice in initial_df_seeds:
-                dict_slice_assignments[f'{df_slice[0]}[{df_slice[1]}]'] = get_slice_assignments(
-                    df_slice, value)
-        if dict_slice_assignments:
-            dict_assignments = create_nodes(df_name, dict_slice_assignments)
+    df_slice_assignments = script_parse(script).pandas_df_slice_assignments
+    for df_name, assignments in df_slice_assignments.items():
+        if assignments:
+            dict_assignments = create_nodes(df_name, assignments)
             graph = Digraph(comment='Test')
             form_subgraphs(graph, dict_assignments)
 
             graph.view()
+
+
 
 
 create_graph(script)
