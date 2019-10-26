@@ -16,6 +16,12 @@ script = ast2json(ast.parse(data))
 #      print(line)
 
 class script_parse():
+    """Parses a script function returning several information related to a dataframe
+
+    Args:
+        script (object): The script with a dataframe to be evaluated
+
+    """
 
     def __init__(self, script):
         self.script_body = script['body']
@@ -26,6 +32,11 @@ class script_parse():
         self.pandas_df_slice_assignments = self._get_df_slice_assignments()
 
     def _get_df_assignments(self):
+        """Gets the assignments of a specific dataframe
+
+        Returns:
+            (dict) : A dictionary with assignments, where each key is a dataframe
+        """
         df_assignments = {}
 
         assignments = self.assignment_graph()
@@ -35,14 +46,18 @@ class script_parse():
 
         return df_assignments
 
-
     def assignment_graph(self):
+        """For a given dataframe assignment create a graph for each target and assignment and
+        operation, like [Target, Operations, Assignment]
+
+        Returns:
+            (dict) : A dictionary divided with DataFrame : [Target, Operations and Assignment]
+        """
         # Here we can deal with any kind of assignment
         assignment_history = []
         for script_line in self.script_body:
             if script_line['_type'] == 'Assign':
-                assignment_history.append(self._assignment_analyzer(script_line,
-                                                                    self.pandas_import_name))
+                assignment_history.append(self._assignment_analyzer(script_line))
 
         # Create a very simple graph to separate target assignments
         dict_graph = {}
@@ -56,6 +71,16 @@ class script_parse():
         return dict_graph
 
     def _get_import_name(self):
+        """Gets the pandas import name (like pandas or pd)
+
+        Returns:
+            (str) : The import name or alias for pandas
+
+        Raises:
+            RuntimeError : Raised when the pandas module is not found
+
+
+        """
         pandas_import_name = None
         for script_line in self.script_body:
             if script_line['_type'] == 'Import':
@@ -71,17 +96,23 @@ class script_parse():
         raise RuntimeError('No pandas module import found')
 
     def _get_dataframes(self):
+        """Get the name of dataframe assignments
+
+        Returns:
+            (list) : List containing the name of pandas dataframe assignments
+
+        """
         pandas_dataframes = []
         load_df_attrs = ['read_csv', 'DataFrame']
         for script_line in self.script_body:
             if script_line['_type'] == 'Assign':
                 if script_line['value']['_type'] == 'Call':
-                    if script_line['value']['func']['value']['id'] == self.pandas_import_name and\
+                    if script_line['value']['func']['value']['id'] == self.pandas_import_name and \
                             script_line['value']['func']['attr'] in load_df_attrs:
                         pandas_dataframes.append(script_line['targets'][0]['id'])
         return pandas_dataframes
 
-    def _assignment_analyzer(self, line, pd_module_name):
+    def _assignment_analyzer(self, line):
         """Analyze a line, if assignment type, and get the target and operations,assignments
 
         Args:
@@ -99,19 +130,18 @@ class script_parse():
         if line['_type'] == 'Assign':
             if 'elts' in line['targets'][0]:
                 raise RuntimeError('This package only supports simple assignments')
-            target = self._get_name_num(line['targets'][0], 'pd')
-            self._assignment_digger(line['value'], global_op_list, global_stats_list,
-                                    pd_module_name)
+            target = self._get_name_num(line['targets'][0])
+            self._assignment_digger(line['value'], global_op_list, global_stats_list)
         return target, global_op_list, global_stats_list
 
-    def _get_name_num(self, edge_dict, pd_module_name):
+    def _get_name_num(self, edge_dict):
         """
 
         Args:
             edge_dict: A dictionary that is either a name or value
-            pd_module_name: Name of Pandas module on code
 
-        Returns (tuple): The assigned df name and its respective column
+        Returns:
+             (tuple): The assigned df name and its respective column
         """
         output = {'kind': {'Name': {'id': None, 's': None}, 'Num': None}, 'lineno': None,
                   'main': None}
@@ -130,7 +160,7 @@ class script_parse():
             output['lineno'] = edge_dict['lineno']
         if edge_dict['_type'] == 'Call':
             if 'value' in edge_dict['func']:
-                if (edge_dict['func']['value']['id']) == pd_module_name and \
+                if (edge_dict['func']['value']['id']) == self.pandas_import_name and \
                         (edge_dict['func']['attr'] in ['read_csv']):
                     output['main'] = True
 
@@ -138,7 +168,7 @@ class script_parse():
 
     # This recursion function needs a global var list to hold values
 
-    def _assignment_digger(self, value_dict, global_op_list, global_stats_list, pd_module_name):
+    def _assignment_digger(self, value_dict, global_op_list, global_stats_list):
         """Gets the operations and assignment variables of a script assignment
 
         Args:
@@ -147,23 +177,16 @@ class script_parse():
             global_stats_list: A list with dictionaries about the assignment variables
         """
         if 'left' in value_dict and 'right' in value_dict:
-            self._assignment_digger(value_dict['left'], global_op_list, global_stats_list,
-                                    pd_module_name)
-            self._assignment_digger(value_dict['right'], global_op_list, global_stats_list,
-                                    pd_module_name)
+            self._assignment_digger(value_dict['left'], global_op_list, global_stats_list)
+            self._assignment_digger(value_dict['right'], global_op_list, global_stats_list)
             global_op_list.append(value_dict['op']['_type'])
         elif 'left' in value_dict:
-            self._assignment_digger(value_dict['left'], global_op_list, global_stats_list,
-                                    pd_module_name)
+            self._assignment_digger(value_dict['left'], global_op_list, global_stats_list)
         else:
-            global_stats_list.append(self._get_name_num(value_dict, pd_module_name))
+            global_stats_list.append(self._get_name_num(value_dict))
 
     def _get_slices(self):
         """Gets a list with the slices being used in a DataFrame assignment
-
-        Args:
-            list_calls (list): A list containing all calls for an identified DataFrame
-            df_name: Name of DataFrame
 
         Returns:
             list : A list with the name of DataFrame slices used on the assignments
@@ -376,8 +399,6 @@ def create_graph(script):
             form_subgraphs(graph, dict_assignments)
 
             graph.view()
-
-
 
 
 create_graph(script)
