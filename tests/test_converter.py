@@ -77,3 +77,32 @@ class TestScript_parse(TestCase):
             script_parse(script_test)
 
         self.assertTrue('No pandas module import found' in str(context.exception))
+
+    def test__get_dataframes_return_single_name(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+        script_test = ast2json(ast.parse(script_test))
+
+        output = script_parse(script_test)._get_dataframes()
+
+
+        self.assertEqual(output, ['df'])
+
+    def test__get_dataframes_return_multiple_names(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df2 = df=pd.read_csv("test2.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df2["x"] = 10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+        script_test = ast2json(ast.parse(script_test))
+
+        output = script_parse(script_test)._get_dataframes()
+
+        self.assertEqual(output, ['df', 'df2'])
