@@ -129,7 +129,7 @@ class script_parse():
         target = None
         if line['_type'] == 'Assign':
             if 'elts' in line['targets'][0]:
-                raise RuntimeError('This package only supports simple assignments')
+                raise NotImplementedError('This package only supports simple assignments')
             target = self._get_name_num(line['targets'][0])
             self._assignment_digger(line['value'], global_op_list, global_stats_list)
         return target, global_op_list, global_stats_list
@@ -162,6 +162,7 @@ class script_parse():
             if 'value' in edge_dict['func']:
                 if (edge_dict['func']['value']['id']) == self.pandas_import_name and \
                         (edge_dict['func']['attr'] in ['read_csv']):
+                    # This is needed to find who is the line that defines the DataFrame
                     output['main'] = True
 
         return output
@@ -401,4 +402,4 @@ def create_graph(script):
             graph.view()
 
 
-create_graph(script)
+#create_graph(script)

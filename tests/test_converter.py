@@ -106,3 +106,94 @@ class TestScript_parse(TestCase):
         output = script_parse(script_test)._get_dataframes()
 
         self.assertEqual(output, ['df', 'df2'])
+
+    def test__assignment_analyzer_single_assignment(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+
+        script_test = ast2json(ast.parse(script_test))
+
+        test_line = {'_type': 'Assign', 'col_offset': 0, 'lineno': 6, 'targets': [{'_type': 'Name', 'col_offset': 0, 'ctx': {'_type': 'Store'}, 'id': 'a', 'lineno': 6}], 'value': {'_type': 'BinOp', 'col_offset': 2, 'left': {'_type': 'Subscript', 'col_offset': 2, 'ctx': {'_type': 'Load'}, 'lineno': 6, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 5, 'lineno': 6, 's': 'b'}}, 'value': {'_type': 'Name', 'col_offset': 2, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 6}}, 'lineno': 6, 'op': {'_type': 'Add'}, 'right': {'_type': 'Num', 'col_offset': 10, 'lineno': 6, 'n': 10}}}
+
+        test_object = script_parse(script_test)
+
+        output = test_object._assignment_analyzer(test_line)
+
+        self.assertEqual(output, ({'kind': {'Name': {'id': 'a', 's': None}, 'Num': None}, 'lineno': 6, 'main': None}, ['Add'], [{'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 6, 'main': None}, {'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 6, 'main': None}]))
+
+
+    def test__assignment_analyzer_error_multiple_assignments(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"],df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+
+        script_test = ast2json(ast.parse(script_test))
+
+        with self.assertRaises(NotImplementedError) as context:
+            script_parse(script_test)
+
+        self.assertTrue('This package only supports simple assignments' in str(context.exception))
+
+    def test__get_name_num__return_subscript(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+
+        script_test = ast2json(ast.parse(script_test))
+
+        test_line = {'_type': 'Subscript', 'col_offset': 8, 'ctx': {'_type': 'Load'}, 'lineno': 6, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 11, 'lineno': 6, 's': 'a'}}, 'value': {'_type': 'Name', 'col_offset': 8, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 6}}
+
+        test_object = script_parse(script_test)
+
+        output = test_object._get_name_num(test_line)
+
+        self.assertEqual(output, {'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None},
+                                  'lineno': 6, 'main': None})
+
+    def test__get_name_num__return_num(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+
+        script_test = ast2json(ast.parse(script_test))
+
+        test_line = {'_type': 'Num', 'col_offset': 10, 'lineno': 5, 'n': 10}
+
+        test_object = script_parse(script_test)
+
+        output = test_object._get_name_num(test_line)
+
+        self.assertEqual(output, {'kind': {'Name': {'id': None, 's': None}, 'Num': 10},
+                                  'lineno': 5, 'main': None})
+
+    def test__get_name_num__return_call(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+
+        script_test = ast2json(ast.parse(script_test))
+
+        test_line = {'_type': 'Call', 'args': [{'_type': 'Str', 'col_offset': 15, 'lineno': 2, 's': 'test.csv'}], 'col_offset': 3, 'func': {'_type': 'Attribute', 'attr': 'read_csv', 'col_offset': 3, 'ctx': {'_type': 'Load'}, 'lineno': 2, 'value': {'_type': 'Name', 'col_offset': 3, 'ctx': {'_type': 'Load'}, 'id': 'pd', 'lineno': 2}}, 'keywords': [], 'lineno': 2}
+
+        test_object = script_parse(script_test)
+
+        output = test_object._get_name_num(test_line)
+
+        self.assertEqual(output, {'kind': {'Name': {'id': None, 's': None}, 'Num': None},
+                                  'lineno': None, 'main': True})
