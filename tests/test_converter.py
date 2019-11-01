@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock, patch, call
 from dpworkflow.converter import script_parse
 
 import ast
@@ -197,3 +197,41 @@ class TestScript_parse(TestCase):
 
         self.assertEqual(output, {'kind': {'Name': {'id': None, 's': None}, 'Num': None},
                                   'lineno': None, 'main': True})
+
+    @patch('dpworkflow.converter.script_parse._assignment_digger')
+    def test__assignment_digger__calls_check(self, mock_assignment_digger):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+
+        call_list = [call({'_type': 'Call', 'args': [{'_type': 'Str', 'col_offset': 15, 'lineno': 2, 's': 'test.csv'}], 'col_offset': 3, 'func': {'_type': 'Attribute', 'attr': 'read_csv', 'col_offset': 3, 'ctx': {'_type': 'Load'}, 'lineno': 2, 'value': {'_type': 'Name', 'col_offset': 3, 'ctx': {'_type': 'Load'}, 'id': 'pd', 'lineno': 2}}, 'keywords': [], 'lineno': 2}, [], []),
+                     call({'_type': 'BinOp', 'col_offset': 23, 'left': {'_type': 'BinOp', 'col_offset': 8, 'left': {'_type': 'Subscript', 'col_offset': 8, 'ctx': {'_type': 'Load'}, 'lineno': 3, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 11, 'lineno': 3, 's': 'a'}}, 'value': {'_type': 'Name', 'col_offset': 8, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 3}}, 'lineno': 3, 'op': {'_type': 'Add'}, 'right': {'_type': 'Subscript', 'col_offset': 16, 'ctx': {'_type': 'Load'}, 'lineno': 3, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 19, 'lineno': 3, 's': 'b'}}, 'value': {'_type': 'Name', 'col_offset': 16, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 3}}}, 'lineno': 3, 'op': {'_type': 'Add'}, 'right': {'_type': 'Num', 'col_offset': 24, 'lineno': 3, 'n': 1}}, [], []),
+                     call({'_type': 'Num', 'col_offset': 8, 'lineno': 4, 'n': 10}, [], []),
+                     call({'_type': 'BinOp', 'col_offset': 2, 'left': {'_type': 'Subscript', 'col_offset': 2, 'ctx': {'_type': 'Load'}, 'lineno': 5, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 5, 'lineno': 5, 's': 'b'}}, 'value': {'_type': 'Name', 'col_offset': 2, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 5}}, 'lineno': 5, 'op': {'_type': 'Add'}, 'right': {'_type': 'Num', 'col_offset': 10, 'lineno': 5, 'n': 10}}, [], []),
+                     call({'_type': 'BinOp', 'col_offset': 8, 'left': {'_type': 'Subscript', 'col_offset': 8, 'ctx': {'_type': 'Load'}, 'lineno': 6, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 11, 'lineno': 6, 's': 'a'}}, 'value': {'_type': 'Name', 'col_offset': 8, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 6}}, 'lineno': 6, 'op': {'_type': 'Add'}, 'right': {'_type': 'Subscript', 'col_offset': 16, 'ctx': {'_type': 'Load'}, 'lineno': 6, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 19, 'lineno': 6, 's': 'b'}}, 'value': {'_type': 'Name', 'col_offset': 16, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 6}}}, [], [])]
+
+
+        script_test = ast2json(ast.parse(script_test))
+
+        script_parse(script_test)
+
+        self.assertEqual(mock_assignment_digger.mock_calls, call_list)
+
+    def test__get_slices__return_slice(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+
+        script_test = ast2json(ast.parse(script_test))
+
+        test_object = script_parse(script_test)
+
+        output = test_object._get_slices()
+
+        self.assertEqual(output, {'df': [['df', 'a'], ['df', 'b'], ['df', 'c']]})
