@@ -213,7 +213,6 @@ class TestScript_parse(TestCase):
                      call({'_type': 'BinOp', 'col_offset': 2, 'left': {'_type': 'Subscript', 'col_offset': 2, 'ctx': {'_type': 'Load'}, 'lineno': 5, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 5, 'lineno': 5, 's': 'b'}}, 'value': {'_type': 'Name', 'col_offset': 2, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 5}}, 'lineno': 5, 'op': {'_type': 'Add'}, 'right': {'_type': 'Num', 'col_offset': 10, 'lineno': 5, 'n': 10}}, [], []),
                      call({'_type': 'BinOp', 'col_offset': 8, 'left': {'_type': 'Subscript', 'col_offset': 8, 'ctx': {'_type': 'Load'}, 'lineno': 6, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 11, 'lineno': 6, 's': 'a'}}, 'value': {'_type': 'Name', 'col_offset': 8, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 6}}, 'lineno': 6, 'op': {'_type': 'Add'}, 'right': {'_type': 'Subscript', 'col_offset': 16, 'ctx': {'_type': 'Load'}, 'lineno': 6, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 19, 'lineno': 6, 's': 'b'}}, 'value': {'_type': 'Name', 'col_offset': 16, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 6}}}, [], [])]
 
-
         script_test = ast2json(ast.parse(script_test))
 
         script_parse(script_test)
@@ -235,3 +234,34 @@ class TestScript_parse(TestCase):
         output = test_object._get_slices()
 
         self.assertEqual(output, {'df': [['df', 'a'], ['df', 'b'], ['df', 'c']]})
+
+    def test__slice_assignments_get_slice_assigments(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+        test_slice_desc = ['df', 'a']
+        test_list_calls = [({'kind': {'Name': {'id': 'df', 's': None}, 'Num': None}, 'lineno': 2, 'main': None}, [], [{'kind': {'Name': {'id': None, 's': None}, 'Num': None}, 'lineno': None, 'main': True}]), ({'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 3, 'main': None}, ['Add', 'Add'], [{'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 3, 'main': None}, {'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 3, 'main': None}, {'kind': {'Name': {'id': None, 's': None}, 'Num': 1}, 'lineno': 3, 'main': None}]), ({'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 4, 'main': None}, [], [{'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 4, 'main': None}]), ({'kind': {'Name': {'id': 'df', 's': 'c'}, 'Num': None}, 'lineno': 6, 'main': None}, ['Add'], [{'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 6, 'main': None}, {'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 6, 'main': None}])]
+
+        script_test = ast2json(ast.parse(script_test))
+
+        test_object = script_parse(script_test)
+
+        output = test_object._slice_assignments(test_slice_desc, test_list_calls)
+
+        self.assertEqual(output, [[['Add', 'Add'], [{'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 3, 'main': None}, {'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 3, 'main': None}, {'kind': {'Name': {'id': None, 's': None}, 'Num': 1}, 'lineno': 3, 'main': None}]]])
+
+    def test__get_df_slice_assignments_get_assignments(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+        script_test = ast2json(ast.parse(script_test))
+
+        output = script_parse(script_test)._get_df_slice_assignments()
+
+        self.assertEqual(output, {'df': {'df[a]': [[['Add', 'Add'], [{'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 3, 'main': None}, {'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 3, 'main': None}, {'kind': {'Name': {'id': None, 's': None}, 'Num': 1}, 'lineno': 3, 'main': None}]]], 'df[b]': [[[], [{'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 4, 'main': None}]]], 'df[c]': [[['Add'], [{'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 6, 'main': None}, {'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 6, 'main': None}]]]}})
