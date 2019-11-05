@@ -23,7 +23,7 @@ class graph():
                 graph = Digraph(comment='Test')
                 self.form_subgraphs(graph, dict_assignments)
 
-                graph.view()
+                #graph.view()
 
     def form_subgraphs(self, graph, dict_assignments):
         """Create subgraphs for each operation step
@@ -34,6 +34,7 @@ class graph():
             graph: Graph object
             dict_assignments (dict): Dictionary with assignments for each DataFrame slice
         """
+
         list_dfslices = list(dict_assignments.keys())
         max_len = self.max_value_dict_len(dict_assignments)
         middle_assignments = {}
