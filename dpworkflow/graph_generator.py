@@ -14,16 +14,17 @@ class graph():
         Args:
             script: Text of script
         """
-        script_parse_obj = script_parse(script)
+        self.script_parse_obj = script_parse(script)
 
-        df_slice_assignments = script_parse_obj.pandas_df_slice_assignments
+    def create_graph(self):
+        df_slice_assignments = self.script_parse_obj.pandas_df_slice_assignments
         for df_name, assignments in df_slice_assignments.items():
             if assignments:
                 dict_assignments = self.create_nodes(df_name, assignments)
-                graph = Digraph(comment='Test')
+                graph = Digraph()
                 self.form_subgraphs(graph, dict_assignments)
 
-                #graph.view()
+                graph.view()
 
     def form_subgraphs(self, graph, dict_assignments):
         """Create subgraphs for each operation step
@@ -171,8 +172,8 @@ class graph():
 import ast
 from ast2json import ast2json
 
-data = open('../venv/test_df.py', 'r').read()
+# data = open('../venv/test_df.py', 'r').read()
+#
+# script = ast2json(ast.parse(data))
 
-script = ast2json(ast.parse(data))
-
-graph(script)
+# graph(script).create_graph()
