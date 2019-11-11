@@ -20,13 +20,13 @@ class graph():
         df_slice_assignments = self.script_parse_obj.pandas_df_slice_assignments
         for df_name, assignments in df_slice_assignments.items():
             if assignments:
-                dict_assignments = self.create_nodes(df_name, assignments)
+                dict_assignments = self._create_nodes(df_name, assignments)
                 graph = Digraph()
-                self.form_subgraphs(graph, dict_assignments)
+                self._form_subgraphs(graph, dict_assignments)
 
                 graph.view()
 
-    def form_subgraphs(self, graph, dict_assignments):
+    def _form_subgraphs(self, graph, dict_assignments):
         """Create subgraphs for each operation step
 
             This also manages the vertical and transversal edges for each node
@@ -55,7 +55,7 @@ class graph():
                         pass
         self.link_transversal_assignments(graph, middle_assignments)
 
-    def create_nodes(self, df_name, dict_slice_assignment):
+    def _create_nodes(self, df_name, dict_slice_assignment):
         """Create a dictionary with node information for each operation line
 
         Args:
