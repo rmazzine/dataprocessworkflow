@@ -74,6 +74,18 @@ class TestGraph(TestCase):
                                    'Num': None}, 'lineno': 3, 'main': None}
 
         with self.assertRaises(RuntimeError) as context:
-            output = graph.kind_to_node(test_kind_dict)
+            graph.kind_to_node(test_kind_dict)
 
         self.assertTrue('Kind not identified' in str(context.exception))
+
+    def test_replace_operations(self):
+        test_operations = ['Add', 'Sub', 'Mult', 'Div']
+
+        output_operations = []
+
+        for test_op in test_operations:
+            output_operations.append(graph.replace_operations(test_op))
+
+        self.assertEqual(output_operations, ['+', '-', '*', '/'])
+
+
