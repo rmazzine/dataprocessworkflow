@@ -88,4 +88,37 @@ class TestGraph(TestCase):
 
         self.assertEqual(output_operations, ['+', '-', '*', '/'])
 
+    def test_max_value_dict_len(self):
+
+        test_dict = {'df[a]': {'value': ['df', 'df[a]', 'df[a]+df[b]+1', 'df[a]'], 'line': [None, None, 3, None]}, 'df[b]': {'value': ['df', 'df[b]', '10', 'df[b]'], 'line': [None, None, 4, None]}, 'df[c]': {'value': ['df', 'df[c]', 'df[a]+df[b]', 'df[c]'], 'line': [None, None, 6, None]}}
+
+        output = graph.max_value_dict_len(test_dict)
+
+        self.assertEqual(output, 4)
+
+    def test_link_vertical_nodes(self):
+
+        test_graph = MagicMock()
+        test_dfslice = 'df[a]'
+        test_list_assignments = ['df', 'df[a]', 'df[a]+df[b]+1', 'df[a]']
+        test_index_slice = 1
+
+        graph.link_vertical_nodes(test_graph, test_dfslice,
+                                  test_list_assignments, test_index_slice)
+
+        test_graph.edge.assert_called_with('df[a]1', 'df[a]2')
+
+    def test_link_transversal_assignments(self):
+
+        test_graph = MagicMock()
+        test_middle_assignments = {3: ['df[a]', 'df[a]2', 'df[a]+df[b]+1'], 4: ['df[b]', 'df[b]2', '10'], 6: ['df[c]', 'df[c]2', 'df[a]+df[b]']}
+
+        call_list = [call('df[a]2', 'df[c]2'), call('df[b]2', 'df[c]2')]
+
+        graph.link_transversal_assignments(test_graph, test_middle_assignments)
+
+        self.assertEqual(test_graph.edge.mock_calls, call_list)
+
+
+
 
