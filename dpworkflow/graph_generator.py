@@ -1,19 +1,26 @@
 import os
+import ast
 
+from ast2json import ast2json
 from graphviz import Digraph
+from dpworkflow._converter import script_parse
 
 os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin'
 
-from dpworkflow.converter import script_parse
 
 class graph():
 
-    def __init__(self, script):
+    def __init__(self, script_path):
         """Creates a graph from a script body
 
         Args:
-            script: Text of script
+            script_path: Path of script
         """
+
+        data = open(script_path, 'r').read()
+
+        script = ast2json(ast.parse(data))
+
         self.script_parse_obj = script_parse(script)
 
     def create_graph(self):
@@ -167,13 +174,3 @@ class graph():
                 if middle_assignments[lines_idxs[i]][0] in middle_assignments[lines_idxs[y]][2]:
                     graph.edge(middle_assignments[lines_idxs[i]][1],
                                middle_assignments[lines_idxs[y]][1])
-
-
-import ast
-from ast2json import ast2json
-
-# data = open('../venv/test_df.py', 'r').read()
-#
-# script = ast2json(ast.parse(data))
-
-# graph(script).create_graph()

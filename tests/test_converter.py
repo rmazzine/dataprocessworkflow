@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest.mock import patch, call
-from dpworkflow.converter import script_parse
+from dpworkflow._converter import script_parse
 
 import ast
 from ast2json import ast2json
@@ -8,7 +8,7 @@ from ast2json import ast2json
 
 class TestScript_parse(TestCase):
 
-    @patch('dpworkflow.converter.script_parse.assignment_graph')
+    @patch('dpworkflow._converter.script_parse.assignment_graph')
     def test__get_df_assignments_regular_call(self, mock_assignment_graph):
         script_test = 'import pandas as pd\n' \
                       'df=pd.read_csv("test.csv")\n' \
@@ -198,7 +198,7 @@ class TestScript_parse(TestCase):
         self.assertEqual(output, {'kind': {'Name': {'id': None, 's': None}, 'Num': None},
                                   'lineno': None, 'main': True})
 
-    @patch('dpworkflow.converter.script_parse._assignment_digger')
+    @patch('dpworkflow._converter.script_parse._assignment_digger')
     def test__assignment_digger__calls_check(self, mock_assignment_digger):
         script_test = 'import pandas as pd\n' \
                       'df=pd.read_csv("test.csv")\n' \
