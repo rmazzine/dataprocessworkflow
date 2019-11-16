@@ -43,7 +43,7 @@ df['Monthly_Salary_by_Ed_Year'] = df['Monthly_Salary']/df['Years_Education']
 df['Monthly_Salary_by_Age'] = df['Monthly_Salary']/df['Age']
 ```
 
-Now, with the `test_make_graph.py` script on sample_test_script folder we simply where we import the `graph_generator` class of `dpworkflow` module, includes the script to be analyzed and the bin path of Graphviz software (in Windows it is "C:/Program Files (x86)/Graphviz2.38/bin"), then includes the additional method `create_graph()` to create the DataFrame graph chart.
+Now, with the `test_make_graph.py` script on sample_test_script folder we simply where we import the `graph_generator` class of `dpworkflow` module, includes the script to be analyzed and the bin path of Graphviz software (in Windows it is "C:/Program Files (x86)/Graphviz2.38/bin", in MacOS can be something like "/usr/local/Cellar/graphviz/2.42.2/bin"), then includes the additional method `create_graph()` to create the DataFrame graph chart.
 
 ```python
 from dpworkflow import graph_generator
