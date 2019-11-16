@@ -1,9 +1,3 @@
-import ast
-
-from ast2json import ast2json
-
-# for line in script['body']:
-#      print(line)
 
 class script_parse():
     """Parses a script function returning several information related to a dataframe

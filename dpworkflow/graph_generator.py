@@ -5,17 +5,16 @@ from ast2json import ast2json
 from graphviz import Digraph
 from dpworkflow._converter import script_parse
 
-os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin'
-
-
 class graph():
 
-    def __init__(self, script_path):
+    def __init__(self, script_path, graphviz2_path='C:/Program Files (x86)/Graphviz2.38/bin'):
         """Creates a graph from a script body
 
         Args:
             script_path: Path of script
         """
+
+        os.environ["PATH"] += os.pathsep + graphviz2_path
 
         data = open(script_path, 'r').read()
 
