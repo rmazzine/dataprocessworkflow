@@ -1,4 +1,4 @@
-[![Known Vulnerabilities](https://snyk.io/test/github/rmazzine/dataprocessworkflow/badge.svg)](https://snyk.io/test/github/rmazzine/dataprocessworkflow) ![Git-Hub Action_Bulding badge](https://github.com/rmazzine/dataprocessworkflow/workflows/Python%20application/badge.svg)
+[![Known Vulnerabilities](https://snyk.io/test/github/rmazzine/dataprocessworkflow/badge.svg)](https://snyk.io/test/github/rmazzine/dataprocessworkflow) ![Git-Hub Action_Bulding badge](https://github.com/rmazzine/dataprocessworkflow/workflows/Python%20application/badge.svg) ![codecov.io](https://codecov.io/github/rmazzine/dataprocessworkflow/coverage.svg?branch=master)
 
 # Pandas Data Process Workflow
 
