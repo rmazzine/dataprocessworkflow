@@ -56,6 +56,7 @@ Then, just run the script:
 python test_make_graph.py
 ```
 
-In this example, the chart will be like the one below: 
+In this example, the chart will be like the one below:
+
 
 ![Example image of script output](img/example1.png?raw=true "Output Example")
