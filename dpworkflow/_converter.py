@@ -1,10 +1,14 @@
+"""This module reads a txt Python Script, identify Pandas DataFrames being assigned and converts
+the script into a dictionary of DataFrames.
 
-class script_parse():
-    """Parses a script function returning several information related to a dataframe
+"""
+
+
+class script_parse:
+    """Parses a script function returning several information related to a DataFrame
 
     Args:
-        script (object): The script with a dataframe to be evaluated
-
+        script (object): The script with a DataFrame to be evaluated
     """
 
     def __init__(self, script):
@@ -16,10 +20,10 @@ class script_parse():
         self.pandas_df_slice_assignments = self._get_df_slice_assignments()
 
     def _get_df_assignments(self):
-        """Gets the assignments of a specific dataframe
+        """Gets the assignments of a specific DataFrame
 
         Returns:
-            (dict) : A dictionary with assignments, where each key is a dataframe
+            (dict) : A dictionary with assignments, where each key is a DataFrame
         """
         df_assignments = {}
 
@@ -31,7 +35,7 @@ class script_parse():
         return df_assignments
 
     def assignment_graph(self):
-        """For a given dataframe assignment create a graph for each target and assignment and
+        """For a given DataFrame assignment create a graph for each target and assignment and
         operation, like [Target, Operations, Assignment]
 
         Returns:
@@ -62,8 +66,6 @@ class script_parse():
 
         Raises:
             RuntimeError : Raised when the pandas module is not found
-
-
         """
         pandas_import_name = None
         for script_line in self.script_body:
@@ -80,11 +82,10 @@ class script_parse():
         raise RuntimeError('No pandas module import found')
 
     def _get_dataframes(self):
-        """Get the name of dataframe assignments
+        """Get the name of DataFrame assignments
 
         Returns:
-            (list) : List containing the name of pandas dataframe assignments
-
+            (list) : List containing the name of pandas DataFrame assignments
         """
         pandas_dataframes = []
         load_df_attrs = ['read_csv', 'DataFrame']
@@ -106,8 +107,6 @@ class script_parse():
             (dict, list, list): A dictionary with the target variables, a list with the assignment
             operations and a list with dictionaries with the assign variables
         """
-        global global_op_list
-        global global_stats_list
         global_op_list = []
         global_stats_list = []
         target = None
@@ -119,13 +118,14 @@ class script_parse():
         return target, global_op_list, global_stats_list
 
     def _get_name_num(self, edge_dict):
-        """
+        """ For each DataFrame or other variable/constant, return a dictionary with information
+        like name, id, number value, line number and if it is the first assignment (main key).
 
         Args:
             edge_dict: A dictionary that is either a name or value
 
         Returns:
-             (tuple): The assigned df name and its respective column
+             (dict): The assigned df or other item name and its respective line number
         """
         output = {'kind': {'Name': {'id': None, 's': None}, 'Num': None}, 'lineno': None,
                   'main': None}
@@ -150,8 +150,6 @@ class script_parse():
                     output['main'] = True
 
         return output
-
-    # This recursion function needs a global var list to hold values
 
     def _assignment_digger(self, value_dict, global_op_list, global_stats_list):
         """Gets the operations and assignment variables of a script assignment
@@ -192,15 +190,15 @@ class script_parse():
         return pandas_dataframe_slices
 
     def _slice_assignments(self, slice_desc, list_calls):
-        """Returns a dictionary with assignments divided by slice
+        """Returns list of dictionaries with assignments divided by slice
 
         Args:
             slice_desc (list): A list with unique DataFrame slices detected in the call
             list_calls (list): Calls made by a DataFrame
 
         Returns:
-            dict : A dictionary with operations and assignments for a given DataFrame slice
-
+            (list) : A list with dictionaries containing operations and assignments for a given
+            DataFrame slice
         """
         slice_assignments = []
         for parent_call in list_calls:
@@ -211,11 +209,10 @@ class script_parse():
         return slice_assignments
 
     def _get_df_slice_assignments(self):
-        """Returns a dictionary with assignments divided by slice
+        """Returns a dictionary with assignments divided by DataFrame slice as a key
 
         Returns:
             dict : A dictionary with operations and assignments for a given DataFrame slice
-
         """
         pandas_dataframe_slice_assignments = {}
         for df_name, df_slices in self.pandas_dataframe_slices.items():
@@ -225,6 +222,7 @@ class script_parse():
                 dict_slice_assignments[f'{df_slice[0]}[{df_slice[1]}]'] = \
                     self._slice_assignments(df_slice, value)
             pandas_dataframe_slice_assignments[df_name] = dict_slice_assignments
+
         return pandas_dataframe_slice_assignments
 
 

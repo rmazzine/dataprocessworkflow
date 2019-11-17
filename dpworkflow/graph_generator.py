@@ -1,3 +1,6 @@
+"""This module gets the script and with the module _converter.py converts the DataFrame parsed
+information into a graph structure using the Digraph module.
+"""
 import os
 import ast
 
@@ -5,15 +8,15 @@ from ast2json import ast2json
 from graphviz import Digraph
 from dpworkflow._converter import script_parse
 
-class graph():
 
+class graph:
+    """This class creates a Graph structure from the Object created with the _converter.py script
+
+    Args:
+        script_path (str): Path of script to be analyzed
+        graphviz2_path (str): Path of Graphviz software binaries folder
+    """
     def __init__(self, script_path, graphviz2_path='C:/Program Files (x86)/Graphviz2.38/bin'):
-        """Creates a graph from a script body
-
-        Args:
-            script_path: Path of script
-        """
-
         os.environ["PATH"] += os.pathsep + graphviz2_path
 
         data = open(script_path, 'r').read()
@@ -23,6 +26,8 @@ class graph():
         self.script_parse_obj = script_parse(script)
 
     def create_graph(self):
+        """This method creates a graph from the parsed and processed data from script
+        """
         df_slice_assignments = self.script_parse_obj.pandas_df_slice_assignments
         for df_name, assignments in df_slice_assignments.items():
             if assignments:
@@ -32,13 +37,12 @@ class graph():
 
                 graph.view()
 
-    def _form_subgraphs(self, graph, dict_assignments):
-        """Create subgraphs for each operation step
-
-            This also manages the vertical and transversal edges for each node
+    def _form_subgraphs(self, graph_obj, dict_assignments):
+        """Create subgraphs for each operation step. This also manages the vertical and 
+        transversal edges for each node.
 
         Args:
-            graph: Graph object
+            graph_obj (object): Graph object
             dict_assignments (dict): Dictionary with assignments for each DataFrame slice
         """
 
@@ -46,12 +50,12 @@ class graph():
         max_len = self.max_value_dict_len(dict_assignments)
         middle_assignments = {}
         for i in range(max_len):
-            with graph.subgraph() as s:
+            with graph_obj.subgraph() as s:
                 s.attr(rank='same')
                 for dfslice in list_dfslices:
                     try:
                         s.node(dfslice + str(i), dict_assignments[dfslice]['value'][i])
-                        self.link_vertical_nodes(graph, dfslice,
+                        self.link_vertical_nodes(graph_obj, dfslice,
                                                  dict_assignments[dfslice]['value'], i)
                         if dict_assignments[dfslice]['line'][i]:
                             # DF[slice],  nodecode, expression, linenumber
@@ -59,7 +63,7 @@ class graph():
                                 [dfslice, dfslice + str(i), dict_assignments[dfslice]['value'][i]]
                     except IndexError:
                         pass
-        self.link_transversal_assignments(graph, middle_assignments)
+        self.link_transversal_assignments(graph_obj, middle_assignments)
 
     def _create_nodes(self, df_name, dict_slice_assignment):
         """Create a dictionary with node information for each operation line
@@ -93,14 +97,13 @@ class graph():
         """Converts a dictionary with variable info to a understandable string
 
         Args:
-            kind_dict (dict): Dictionary with information about a varaible
+            kind_dict (dict): Dictionary with information about a variable
 
         Returns:
             (str): Plain representation of what that dictionary variable mean
 
         Raises:
             RuntimeError: Raised when the kind is not recognized
-
         """
         if kind_dict['kind']['Name']['id'] and kind_dict['kind']['Name']['s']:
             return f'{kind_dict["kind"]["Name"]["id"]}[{kind_dict["kind"]["Name"]["s"]}]'
