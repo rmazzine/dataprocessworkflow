@@ -26,7 +26,9 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
+      env:
+        CODECOV_TOKEN: ${{ secrets.COVERATE_TOKEN_CODE }}
       run: |
         pip install pytest pytest-cov
         pytest --ignore "sample_test_script/" --cov=./
-        codecov
+        codecov --token=$CODECOV_TOKEN
