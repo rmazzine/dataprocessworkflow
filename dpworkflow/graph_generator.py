@@ -75,6 +75,7 @@ class graph:
         Returns:
             (dict): Information about the operation for each slice
         """
+        print('##################################' ,dict_slice_assignment)
         dict_node_expression = {}
         for df_slice, assignments in dict_slice_assignment.items():
             dict_node_expression[df_slice] = {}
@@ -106,6 +107,9 @@ class graph:
             RuntimeError: Raised when the kind is not recognized
         """
         if kind_dict['kind']['Name']['id'] and kind_dict['kind']['Name']['s']:
+            if kind_dict['Attr']:
+                return f'{kind_dict["kind"]["Name"]["id"]}[{kind_dict["kind"]["Name"]["s"]}].' \
+                       f'{kind_dict["Attr"]}()'
             return f'{kind_dict["kind"]["Name"]["id"]}[{kind_dict["kind"]["Name"]["s"]}]'
         if kind_dict['kind']['Num']:
             return str(kind_dict['kind']['Num'])
