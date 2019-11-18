@@ -128,7 +128,7 @@ class script_parse:
              (dict): The assigned df or other item name and its respective line number
         """
         output = {'kind': {'Name': {'id': None, 's': None}, 'Num': None}, 'lineno': None,
-                  'main': None}
+                  'Attr': None, 'main': None}
         if edge_dict['_type'] == 'Name':
             output['kind']['Name']['id'] = edge_dict['id']
             output['lineno'] = edge_dict['lineno']
@@ -144,10 +144,16 @@ class script_parse:
             output['lineno'] = edge_dict['lineno']
         if edge_dict['_type'] == 'Call':
             if 'value' in edge_dict['func']:
-                if (edge_dict['func']['value']['id']) == self.pandas_import_name and \
-                        (edge_dict['func']['attr'] in ['read_csv']):
-                    # This is needed to find who is the line that defines the DataFrame
+                if edge_dict['func']['attr'] in ['read_csv']:
                     output['main'] = True
+
+                elif edge_dict['func']['_type'] == 'Attribute':
+                    output['Attr'] = edge_dict['func']['attr']
+                    output['kind']['Name']['id'] = edge_dict['func']['value']['value']['id']
+                    if 's' in edge_dict['func']['value']['slice']['value']:
+                        output['kind']['Name']['s'] = \
+                            edge_dict['func']['value']['slice']['value']['s']
+                    output['lineno'] = edge_dict['lineno']
 
         return output
 

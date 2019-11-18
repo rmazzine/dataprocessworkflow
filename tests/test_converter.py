@@ -36,7 +36,7 @@ class TestScript_parse(TestCase):
 
         output = script_parse(script_test).assignment_graph()
 
-        self.assertEqual(output, {'df': [({'kind': {'Name': {'id': 'df', 's': None}, 'Num': None}, 'lineno': 2, 'main': None}, [], [{'kind': {'Name': {'id': None, 's': None}, 'Num': None}, 'lineno': None, 'main': True}]), ({'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 3, 'main': None}, ['Add', 'Add'], [{'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 3, 'main': None}, {'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 3, 'main': None}, {'kind': {'Name': {'id': None, 's': None}, 'Num': 1}, 'lineno': 3, 'main': None}]), ({'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 4, 'main': None}, [], [{'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 4, 'main': None}]), ({'kind': {'Name': {'id': 'df', 's': 'c'}, 'Num': None}, 'lineno': 6, 'main': None}, ['Add'], [{'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 6, 'main': None}, {'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 6, 'main': None}])], 'a': [({'kind': {'Name': {'id': 'a', 's': None}, 'Num': None}, 'lineno': 5, 'main': None}, ['Add'], [{'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 5, 'main': None}, {'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 5, 'main': None}])]})
+        self.assertEqual(output, {'a': [({'Attr': None, 'kind': {'Name': {'id': 'a', 's': None}, 'Num': None}, 'lineno': 5, 'main': None}, ['Add'], [{'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 5, 'main': None}, {'Attr': None, 'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 5, 'main': None}])], 'df': [({'Attr': None, 'kind': {'Name': {'id': 'df', 's': None}, 'Num': None}, 'lineno': 2, 'main': None}, [], [{'Attr': None, 'kind': {'Name': {'id': None, 's': None}, 'Num': None}, 'lineno': None, 'main': True}]), ({'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 3, 'main': None}, ['Add', 'Add'], [{'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 3, 'main': None}, {'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 3, 'main': None}, {'Attr': None, 'kind': {'Name': {'id': None, 's': None}, 'Num': 1}, 'lineno': 3, 'main': None}]), ({'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 4, 'main': None}, [], [{'Attr': None, 'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 4, 'main': None}]), ({'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'c'}, 'Num': None}, 'lineno': 6, 'main': None}, ['Add'], [{'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 6, 'main': None}, {'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 6, 'main': None}])]})
 
     def test__get_import_name_pandas_fullname(self):
         script_test = 'import pandas\n' \
@@ -123,7 +123,7 @@ class TestScript_parse(TestCase):
 
         output = test_object._assignment_analyzer(test_line)
 
-        self.assertEqual(output, ({'kind': {'Name': {'id': 'a', 's': None}, 'Num': None}, 'lineno': 6, 'main': None}, ['Add'], [{'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 6, 'main': None}, {'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 6, 'main': None}]))
+        self.assertEqual(output, ({'Attr': None, 'kind': {'Name': {'id': 'a', 's': None}, 'Num': None}, 'lineno': 6, 'main': None}, ['Add'], [{'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 6, 'main': None}, {'Attr': None, 'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 6, 'main': None}]))
 
 
     def test__assignment_analyzer_error_multiple_assignments(self):
@@ -157,8 +157,8 @@ class TestScript_parse(TestCase):
 
         output = test_object._get_name_num(test_line)
 
-        self.assertEqual(output, {'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None},
-                                  'lineno': 6, 'main': None})
+        self.assertEqual(output, {'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'a'},
+                                                         'Num': None}, 'lineno': 6, 'main': None})
 
     def test__get_name_num__return_num(self):
         script_test = 'import pandas as pd\n' \
@@ -176,8 +176,8 @@ class TestScript_parse(TestCase):
 
         output = test_object._get_name_num(test_line)
 
-        self.assertEqual(output, {'kind': {'Name': {'id': None, 's': None}, 'Num': 10},
-                                  'lineno': 5, 'main': None})
+        self.assertEqual(output, {'Attr': None, 'kind': {'Name': {'id': None, 's': None},
+                                                         'Num': 10}, 'lineno': 5, 'main': None})
 
     def test__get_name_num__return_call(self):
         script_test = 'import pandas as pd\n' \
@@ -195,8 +195,9 @@ class TestScript_parse(TestCase):
 
         output = test_object._get_name_num(test_line)
 
-        self.assertEqual(output, {'kind': {'Name': {'id': None, 's': None}, 'Num': None},
-                                  'lineno': None, 'main': True})
+        self.assertEqual(output, {'Attr': None, 'kind': {'Name': {'id': None, 's': None},
+                                                         'Num': None},
+                                                         'lineno': None, 'main': True})
 
     @patch('dpworkflow._converter.script_parse._assignment_digger')
     def test__assignment_digger__calls_check(self, mock_assignment_digger):
@@ -264,4 +265,4 @@ class TestScript_parse(TestCase):
 
         output = script_parse(script_test)._get_df_slice_assignments()
 
-        self.assertEqual(output, {'df': {'df[a]': [[['Add', 'Add'], [{'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 3, 'main': None}, {'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 3, 'main': None}, {'kind': {'Name': {'id': None, 's': None}, 'Num': 1}, 'lineno': 3, 'main': None}]]], 'df[b]': [[[], [{'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 4, 'main': None}]]], 'df[c]': [[['Add'], [{'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 6, 'main': None}, {'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 6, 'main': None}]]]}})
+        self.assertEqual(output, {'df': {'df[a]': [[['Add', 'Add'], [{'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 3, 'main': None}, {'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 3, 'main': None}, {'Attr': None, 'kind': {'Name': {'id': None, 's': None}, 'Num': 1}, 'lineno': 3, 'main': None}]]], 'df[b]': [[[], [{'Attr': None, 'kind': {'Name': {'id': None, 's': None}, 'Num': 10}, 'lineno': 4, 'main': None}]]], 'df[c]': [[['Add'], [{'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'a'}, 'Num': None}, 'lineno': 6, 'main': None}, {'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'b'}, 'Num': None}, 'lineno': 6, 'main': None}]]]}})
