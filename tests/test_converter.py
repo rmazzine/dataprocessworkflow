@@ -160,6 +160,25 @@ class TestScript_parse(TestCase):
         self.assertEqual(output, {'Attr': None, 'kind': {'Name': {'id': 'df', 's': 'a'},
                                                          'Num': None}, 'lineno': 6, 'main': None})
 
+    def test__get_name_num__return_subscript_num(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+
+        script_test = ast2json(ast.parse(script_test))
+
+        test_line = {'_type': 'Subscript', 'col_offset': 71, 'ctx': {'_type': 'Load'}, 'lineno': 12, 'slice': {'_type': 'Index', 'value': {'_type': 'Num', 'col_offset': 74, 'lineno': 12, 'n': 10}}, 'value': {'_type': 'Name', 'col_offset': 71, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 12}}
+
+        test_object = script_parse(script_test)
+
+        output = test_object._get_name_num(test_line)
+
+        self.assertEqual(output, {'Attr': None, 'kind': {'Name': {'id': 'df', 's': 10},
+                                                         'Num': None}, 'lineno': 12, 'main': None})
+
     def test__get_name_num__return_num(self):
         script_test = 'import pandas as pd\n' \
                       'df=pd.read_csv("test.csv")\n' \
@@ -198,6 +217,25 @@ class TestScript_parse(TestCase):
         self.assertEqual(output, {'Attr': None, 'kind': {'Name': {'id': None, 's': None},
                                                          'Num': None},
                                                          'lineno': None, 'main': True})
+
+    def test__get_name_num__return_call_pd_function(self):
+        script_test = 'import pandas as pd\n' \
+                      'df=pd.read_csv("test.csv")\n' \
+                      'df["a"]=df["a"]+df["b"]+1\n' \
+                      'df["b"]=10\n' \
+                      'a=df["b"]+10\n' \
+                      'df["c"]=df["a"]+df["b"]'
+
+        script_test = ast2json(ast.parse(script_test))
+
+        test_line = {'_type': 'Call', 'args': [], 'col_offset': 51, 'func': {'_type': 'Attribute', 'attr': 'max', 'col_offset': 51, 'ctx': {'_type': 'Load'}, 'lineno': 12, 'value': {'_type': 'Subscript', 'col_offset': 51, 'ctx': {'_type': 'Load'}, 'lineno': 12, 'slice': {'_type': 'Index', 'value': {'_type': 'Str', 'col_offset': 54, 'lineno': 12, 's': 'Age'}}, 'value': {'_type': 'Name', 'col_offset': 51, 'ctx': {'_type': 'Load'}, 'id': 'df', 'lineno': 12}}}, 'keywords': [], 'lineno': 12}
+
+        test_object = script_parse(script_test)
+
+        output = test_object._get_name_num(test_line)
+
+        self.assertEqual(output, {'Attr': 'max', 'kind':
+            {'Name': {'id': 'df', 's': 'Age'}, 'Num': None}, 'lineno': 12, 'main': None})
 
     @patch('dpworkflow._converter.script_parse._assignment_digger')
     def test__assignment_digger__calls_check(self, mock_assignment_digger):

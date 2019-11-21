@@ -75,7 +75,6 @@ class graph:
         Returns:
             (dict): Information about the operation for each slice
         """
-        print('##################################' ,dict_slice_assignment)
         dict_node_expression = {}
         for df_slice, assignments in dict_slice_assignment.items():
             dict_node_expression[df_slice] = {}
