@@ -127,6 +127,7 @@ class script_parse:
         Returns:
              (dict): The assigned df or other item name and its respective line number
         """
+
         output = {'kind': {'Name': {'id': None, 's': None}, 'Num': None}, 'lineno': None,
                   'Attr': None, 'main': None}
         if edge_dict['_type'] == 'Name':
@@ -139,6 +140,7 @@ class script_parse:
                 output['kind']['Name']['s'] = edge_dict['slice']['value']['s']
             if 'n' in edge_dict['slice']['value']:
                 output['kind']['Name']['s'] = edge_dict['slice']['value']['n']
+
         if edge_dict['_type'] == 'Num':
             output['kind']['Num'] = edge_dict['n']
             output['lineno'] = edge_dict['lineno']
@@ -169,8 +171,6 @@ class script_parse:
             self._assignment_digger(value_dict['left'], global_op_list, global_stats_list)
             self._assignment_digger(value_dict['right'], global_op_list, global_stats_list)
             global_op_list.append(value_dict['op']['_type'])
-        elif 'left' in value_dict:
-            self._assignment_digger(value_dict['left'], global_op_list, global_stats_list)
         else:
             global_stats_list.append(self._get_name_num(value_dict))
 
