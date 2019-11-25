@@ -6,21 +6,32 @@ from dpworkflow.graph_generator import graph
 
 class TestGraph(TestCase):
 
+    @patch('dpworkflow.graph_generator.Digraph')
+    @patch('dpworkflow.graph_generator.graph._form_subgraphs')
+    @patch('dpworkflow.graph_generator.graph._create_nodes')
     @patch('dpworkflow.graph_generator.ast2json')
     @patch('dpworkflow.graph_generator.ast')
     @patch('dpworkflow.graph_generator.open')
     @patch('dpworkflow.graph_generator.script_parse')
-    def test_create_graph(self, mock_script_parse, mock_open, mock_ast, mock_ast2json):
+    def test_create_graph(self, mock_script_parse, mock_open, mock_ast, mock_ast2json,
+                          mock_create_nodes, mock_form_subgraphs, mock_Digraph):
         test_script_path = 'test_script_path'
 
         mock_open().read.return_value = 'script_test'
         mock_ast2json.return_value = 'script_test_parsed'
+        mock_script_parse().pandas_df_slice_assignments = {'test_df': 'test_assignment'}
+        mock_create_nodes.return_value = 'test_dict_assignments'
 
         graph(test_script_path).create_graph()
 
         mock_open.assert_called_with('test_script_path', 'r')
         mock_ast.parse.assert_called_with('script_test')
         mock_script_parse.assert_called_with('script_test_parsed')
+        mock_create_nodes.assert_called_with('test_df', 'test_assignment')
+        mock_Digraph.assert_called_with()
+        mock_form_subgraphs.assert_called_with(mock_Digraph(), 'test_dict_assignments')
+        mock_Digraph().view.assert_called_with()
+
 
     @patch('dpworkflow.graph_generator.ast2json')
     @patch('dpworkflow.graph_generator.ast')
