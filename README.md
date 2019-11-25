@@ -59,4 +59,4 @@ python test_make_graph.py
 In this example, the chart will be like the one below:
 
 
-![Example image of script output](img/example1.png?raw=true "Output Example")
+![Example image of script output](img/example1.png?raw=true  "Output Example")
