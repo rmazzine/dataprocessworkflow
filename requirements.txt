@@ -1,3 +1,4 @@
 pandas
 ast2json>=0.2,<0.3
 graphviz>=0.13,<0.14
+numpy>=1.22.0rc1 # not directly required, pinned by Snyk to avoid a vulnerability
